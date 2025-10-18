@@ -2,47 +2,77 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    // Champs modifiables en masse
     protected $fillable = [
-        'name',
+        'prenom',
+        'nom',
         'email',
+        'telephone',
         'password',
+        'photo_profil',
+        'role',
+        'points_totaux',
+        'etat_compte',
+        'bio',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
+    // Champs cachés (ne seront pas renvoyés dans les réponses JSON)
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    // Conversion automatique des dates
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
+
+   
+
+    // Un utilisateur peut avoir plusieurs cours (si enseignant)
+    public function cours()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->hasMany(Cours::class, 'enseignant_id');
     }
+
+    // Un utilisateur peut créer plusieurs quiz
+    public function quizzes()
+    {
+        return $this->hasMany(Quiz::class, 'enseignant_id');
+    }
+
+    // Un étudiant peut avoir plusieurs progressions
+    public function progressions()
+    {
+        return $this->hasMany(Progression::class);
+    }
+
+    // Relation badges pour un étudiant
+    public function badges()
+    {
+        return $this->belongsToMany(Badge::class, 'badges_etudiants', 'user_id', 'badge_id')
+                    ->withTimestamps();
+    }
+
+    // Relation cours suivis par l'étudiant
+    public function coursSuivis()
+    {
+        return $this->belongsToMany(Cours::class, 'cours_etudiants', 'user_id', 'cours_id')
+                    ->withTimestamps();
+    }
+
+    public function coursInscrits()
+{
+    return $this->belongsToMany(Cours::class, 'cours_etudiants')
+                ->withTimestamps();
+}
+
 }
