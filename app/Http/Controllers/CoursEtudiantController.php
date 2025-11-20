@@ -3,48 +3,52 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\User;
 use App\Models\Cours;
+use Illuminate\Support\Facades\Auth;
 
 class CoursEtudiantController extends Controller
 {
-    // Inscrire un étudiant à un cours
-    public function inscrire(Request $request, $user_id)
+    // Afficher tous les cours
+   public function index()
+{
+    $etudiant = Auth::user();
+    $cours = Cours::all();
+
+    // Préciser la table pour éviter l'ambiguïté
+    $coursSuivis = $etudiant->coursSuivis()->pluck('cours.id')->toArray();
+
+    return view('etudiant.cours.index', compact('cours', 'coursSuivis'));
+}
+
+
+    // Afficher les cours suivis par l’étudiant
+    public function mesCours()
     {
-        $user = User::findOrFail($user_id);
-        $cours = Cours::findOrFail($request->cours_id);
+        $etudiant = Auth::user();
+        $cours = $etudiant->coursSuivis()->get();
 
-        $user->coursInscrits()->syncWithoutDetaching([$cours->id]);
-
-        return response()->json([
-            'message' => "Étudiant inscrit au cours avec succès."
-        ]);
+        return view('etudiant.cours.mes-cours', compact('cours'));
     }
 
-    // Retirer un étudiant d'un cours
-    public function retirer(Request $request, $user_id)
+    // S'inscrire à un cours
+    public function suivre($id)
     {
-        $user = User::findOrFail($user_id);
-        $cours = Cours::findOrFail($request->cours_id);
+        $etudiant = Auth::user();
+        $cours = Cours::findOrFail($id);
 
-        $user->coursInscrits()->detach($cours->id);
+        $etudiant->coursSuivis()->syncWithoutDetaching([$cours->id]);
 
-        return response()->json([
-            'message' => "Étudiant retiré du cours."
-        ]);
+        return redirect()->back()->with('success', "Inscription au cours '{$cours->titre}' réussie !");
     }
 
-    // Lister tous les étudiants d'un cours
-    public function etudiantsDuCours($cours_id)
+    // Se désinscrire d’un cours
+    public function retirer($id)
     {
-        $cours = Cours::findOrFail($cours_id);
-        return response()->json($cours->etudiants);
-    }
+        $etudiant = Auth::user();
+        $cours = Cours::findOrFail($id);
 
-    // Lister tous les cours d’un étudiant
-    public function coursDeEtudiant($user_id)
-    {
-        $user = User::findOrFail($user_id);
-        return response()->json($user->coursInscrits);
+        $etudiant->coursSuivis()->detach($cours->id);
+
+        return redirect()->back()->with('success', "Vous avez quitté le cours '{$cours->titre}'.");
     }
 }

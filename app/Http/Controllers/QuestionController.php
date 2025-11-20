@@ -2,54 +2,34 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Question;
 use Illuminate\Http\Request;
+use App\Models\Quiz;
+use Illuminate\Support\Facades\Auth;
 
 class QuestionController extends Controller
 {
-    // Liste de toutes les questions
-    public function index()
+    // Afficher le quiz pour l'étudiant
+    public function showQuiz($id)
     {
-        return response()->json(Question::with('quiz')->get(), 200);
+        $quiz = Quiz::with('questions')->findOrFail($id);
+        return view('etudiant.quiz', compact('quiz'));
     }
 
-    // Afficher une question spécifique
-    public function show($id)
+    // Soumettre le quiz
+    public function submitQuiz(Request $request, $id)
     {
-        $question = Question::with('quiz')->findOrFail($id);
-        return response()->json($question, 200);
-    }
+        $quiz = Quiz::with('questions')->findOrFail($id);
+        $score = 0;
 
-    // Créer une question
-    public function store(Request $request)
-    {
-        $request->validate([
-            'question' => 'required|string',
-            'options' => 'required|array|min:2',
-            'reponse_correcte' => 'required|string',
-            'quiz_id' => 'required|exists:quizzes,id'
-        ]);
+        foreach ($quiz->questions as $question) {
+            $userAnswer = $request->input('question_'.$question->id);
 
-        $question = Question::create($request->all());
+            // Vérifie la réponse (l'indice)
+            if ($userAnswer !== null && intval($userAnswer) == $question->reponse_correcte) {
+                $score++;
+            }
+        }
 
-        return response()->json($question, 201);
-    }
-
-    // Mettre à jour une question
-    public function update(Request $request, $id)
-    {
-        $question = Question::findOrFail($id);
-        $question->update($request->all());
-
-        return response()->json($question, 200);
-    }
-
-    // Supprimer une question
-    public function destroy($id)
-    {
-        $question = Question::findOrFail($id);
-        $question->delete();
-
-        return response()->json(null, 204);
+        return back()->with('success', "Vous avez obtenu $score / ".$quiz->questions->count());
     }
 }

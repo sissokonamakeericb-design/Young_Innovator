@@ -9,11 +9,15 @@ use App\Models\User;
 class BadgeController extends Controller
 {
     // Lister tous les badges
-    public function index()
-    {
-        $badges = Badge::all();
-        return response()->json($badges);
-    }
+public function index()
+{
+    $user = auth()->user();
+    $badges = $user->badges;
+
+    return view('badges.index', compact('badges'));
+}
+
+
 
     // Créer un nouveau badge
     public function store(Request $request)
